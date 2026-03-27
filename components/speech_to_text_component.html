@@ -1,0 +1,15 @@
+<button onclick="startRec()">Start Speaking</button>
+<p id="output"></p>
+
+<script>
+function startRec() {
+    const rec = new webkitSpeechRecognition();
+    rec.lang = "en-IN";
+    rec.onresult = function(event) {
+        const text = event.results[0][0].transcript;
+        document.getElementById("output").innerHTML = text;
+        Streamlit.setComponentValue(text);
+    };
+    rec.start();
+}
+</script>

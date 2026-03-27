@@ -1,0 +1,13 @@
+streamlit
+streamlit-webrtc
+language-tool-python
+pydub
+numpy
+opencv-python
+sounddevice
+soundfile
+requests
+firebase-admin
+supabase
+fpdf2
+reportlab

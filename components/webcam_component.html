@@ -1,0 +1,12 @@
+<video id="video" width="400" autoplay></video>
+<button onclick="startCamera()">Start Camera</button>
+
+<script>
+function startCamera() {
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+    .then(stream => {
+        document.getElementById('video').srcObject = stream;
+    })
+    .catch(err => console.log(err));
+}
+</script>

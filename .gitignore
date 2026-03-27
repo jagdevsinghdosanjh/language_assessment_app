@@ -1,0 +1,72 @@
+# -------------------------
+# Python
+# -------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Byte-compiled / optimized / DLL files
+*.so
+*.dll
+*.dylib
+
+# -------------------------
+# Streamlit
+# -------------------------
+.streamlit/secrets.toml
+.streamlit/*.json
+
+# -------------------------
+# Logs
+# -------------------------
+*.log
+logs/
+*.sqlite3-journal
+
+# -------------------------
+# Databases
+# -------------------------
+assessment.db
+
+# -------------------------
+# Audio/Video Uploads
+# -------------------------
+assets/audio/*.wav
+assets/audio/*.mp3
+assets/video/
+recordings/
+
+# -------------------------
+# Node / JS (if used later)
+# -------------------------
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# -------------------------
+# VS Code
+# -------------------------
+.vscode/
+*.code-workspace
+
+# -------------------------
+# OS Files
+# -------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# -------------------------
+# Build / Distribution
+# -------------------------
+build/
+dist/
+*.egg-info/
