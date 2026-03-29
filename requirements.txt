@@ -11,3 +11,6 @@ firebase-admin
 supabase
 fpdf2
 reportlab
+openai-whisper
+google-generativeai
+

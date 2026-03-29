@@ -1,60 +1,164 @@
 import os
 import json
 import streamlit as st
+import whisper
+import subprocess
+
+# Correct Gemini imports
+from google.generativeai.client import configure
+from google.generativeai.generative_models import GenerativeModel
 
 AUDIO_DIR = "assets/audio"
 JSON_DIR = "exercises"
 
 os.makedirs(JSON_DIR, exist_ok=True)
 
-def default_template():
+# ---------------------------------------------------------
+# 1. Load Whisper model
+# ---------------------------------------------------------
+@st.cache_resource
+def load_whisper():
+    return whisper.load_model("large-v3")
+
+whisper_model = load_whisper()
+
+# ---------------------------------------------------------
+# 2. Preprocess audio (FFmpeg)
+# ---------------------------------------------------------
+def preprocess_audio(input_path, output_path="temp.wav"):
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", input_path,
+        "-ac", "1",
+        "-ar", "16000",
+        output_path
+    ]
+    subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return output_path
+
+# ---------------------------------------------------------
+# 3. Transcribe audio
+# ---------------------------------------------------------
+def transcribe_audio(audio_path):
+    clean_audio = preprocess_audio(audio_path)
+    result = whisper_model.transcribe(clean_audio)
+    return result["text"]
+
+# ---------------------------------------------------------
+# 4. Generate 10 MCQs using Gemini
+# ---------------------------------------------------------
+def generate_mcqs(transcript):
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY not found in environment variables.")
+
+    configure(api_key=api_key)
+
+    cleaned = transcript.replace("\n", " ").strip()
+
+    # Handle short transcripts
+    if len(cleaned.split()) < 20:
+        cleaned = (
+            "The transcript appears short. Still generate questions based strictly "
+            "on the available content. Do NOT create generic questions.\n"
+            f"Transcript: {cleaned}"
+        )
+    else:
+        cleaned = f"Transcript: {cleaned}"
+
+    prompt = f"""
+You are an expert English comprehension teacher.
+
+Your job is to generate EXACTLY 10 multiple-choice questions based ONLY on the transcript below.
+
+The questions MUST:
+- reflect the events, characters, ideas, and details in the transcript
+- include specific names, places, actions, and facts from the story
+- avoid generic or vague questions
+- require comprehension, not guessing
+
+Each question must include:
+- "question"
+- "options" (4 options)
+- "answer" (correct option)
+
+Transcript:
+{cleaned}
+
+Return ONLY valid JSON:
+{{
+  "questions": [
+    {{
+      "question": "...",
+      "options": ["A", "B", "C", "D"],
+      "answer": "A"
+    }}
+  ]
+}}
+"""
+
+    model = GenerativeModel(model_name="gemini-2.0-flash")
+    response = model.generate_content(contents=prompt)
+
+    # Parse JSON safely
+    try:
+        data = json.loads(response.text)
+        return data["questions"]
+    except Exception:
+        return [
+            {
+                "question": "Error parsing AI output. Raw response:",
+                "options": ["See transcript", "See transcript", "See transcript", "See transcript"],
+                "answer": "See transcript"
+            }
+        ]
+
+# ---------------------------------------------------------
+# 5. Build full JSON structure
+# ---------------------------------------------------------
+def build_json(audio_filename, transcript, mcqs):
+    base = audio_filename.replace(".mp3", "")
+
     return {
         "listening": {
-            "questions": [
-                {
-                    "question": "What is the capital of France?",
-                    "options": ["Paris", "London", "Berlin", "Rome"],
-                    "answer": "Paris"
-                },
-                {
-                    "question": "Which planet is known as the Red Planet?",
-                    "options": ["Earth", "Mars", "Jupiter", "Venus"],
-                    "answer": "Mars"
-                }
-            ]
+            "transcript": transcript,
+            "questions": mcqs
         },
         "speaking": {
             "prompts": [
-                {"task": "Introduce yourself in 2–3 sentences."},
-                {"task": "Describe your favorite hobby and why you enjoy it."}
+                {"task": f"Speak about the topic in '{base}' for 30 seconds."},
+                {"task": "Describe one key point you remember."}
             ]
         },
         "reading": {
-            "passage": "Once upon a time, a prince lived in a grand palace. He was admired by all, but he longed to see the world beyond his walls.",
+            "passage": f"This reading passage is linked to the audio '{base}'.",
             "questions": [
                 {
-                    "question": "Where did the prince live?",
-                    "options": ["In a cottage", "In a palace", "In a forest", "In a village"],
-                    "answer": "In a palace"
-                },
-                {
-                    "question": "What did the prince long to do?",
-                    "options": ["See the world", "Build a palace", "Meet his people", "Travel to the forest"],
-                    "answer": "See the world"
+                    "question": f"What is the theme of '{base}'?",
+                    "options": ["Theme A", "Theme B", "Theme C", "Theme D"],
+                    "answer": "Theme A"
                 }
             ]
         },
         "writing": {
             "tasks": [
-                {"prompt": "Write a short paragraph about your favorite season."},
-                {"prompt": "Compose a letter to your friend describing a recent trip."}
+                {"prompt": f"Write a short summary of the audio '{base}'."},
+                {"prompt": "Write your opinion about the topic."}
             ]
         }
     }
 
-
+# ---------------------------------------------------------
+# 6. Generate JSON for one file
+# ---------------------------------------------------------
 def generate_json_for_file(mp3_filename):
-    json_data = default_template()
+    audio_path = os.path.join(AUDIO_DIR, mp3_filename)
+
+    transcript = transcribe_audio(audio_path)
+    mcqs = generate_mcqs(transcript)
+
+    json_data = build_json(mp3_filename, transcript, mcqs)
+
     json_filename = mp3_filename.replace(".mp3", ".json")
     json_path = os.path.join(JSON_DIR, json_filename)
 
@@ -63,9 +167,11 @@ def generate_json_for_file(mp3_filename):
 
     return json_filename, json_data
 
-
+# ---------------------------------------------------------
+# 7. Streamlit UI
+# ---------------------------------------------------------
 def json_generator_ui():
-    st.header("🎧 Audio → JSON Generator")
+    st.header("🎧 AI‑Powered Audio → JSON Generator")
 
     mp3_files = [f for f in os.listdir(AUDIO_DIR) if f.endswith(".mp3")]
 
@@ -73,11 +179,9 @@ def json_generator_ui():
         st.warning("No .mp3 files found in the audio folder.")
         return
 
-    # Single file mode
-    st.subheader("Generate JSON for a single audio file")
     selected = st.selectbox("Select an audio file", mp3_files)
 
-    if st.button("Generate JSON for selected file"):
+    if st.button("Generate AI‑Powered JSON"):
         json_filename, json_data = generate_json_for_file(selected)
         st.success(f"Generated: {json_filename}")
         st.json(json_data)
@@ -88,17 +192,3 @@ def json_generator_ui():
             file_name=json_filename,
             mime="application/json"
         )
-
-    st.divider()
-
-    # Batch mode
-    st.subheader("Batch generate JSON for all audio files")
-
-    if st.button("Generate JSON for all .mp3 files"):
-        results = []
-        for mp3 in mp3_files:
-            json_filename, _ = generate_json_for_file(mp3)
-            results.append(json_filename)
-
-        st.success("Generated JSON files:")
-        st.write(results)
