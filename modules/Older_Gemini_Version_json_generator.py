@@ -3,10 +3,11 @@ import json
 import subprocess
 import streamlit as st
 import whisper
-import ollama
+import google.genai as genai
+from google.genai.types import GenerateContentConfig
 from dotenv import load_dotenv
 
-# Load environment variables (not required for Ollama, but safe to keep)
+# Load environment variables
 load_dotenv()
 
 AUDIO_DIR = "assets/audio"
@@ -46,27 +47,48 @@ def transcribe_audio(audio_path):
     return result["text"]
 
 # ---------------------------------------------------------
-# 4. Generate MCQs using Ollama (Llama 3.1 or DeepSeek)
+# 4. Generate 10 MCQs using NEW Gemini SDK
 # ---------------------------------------------------------
 def generate_mcqs(transcript):
+    api_key = os.getenv("GEMINI_API_KEY")
+    st.write("Gemini Key Loaded:", api_key is not None)
+
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY not found in environment variables.")
+
+    client = genai.Client(api_key=api_key)
+
     cleaned = transcript.replace("\n", " ").strip()
+
+    if len(cleaned.split()) < 20:
+        cleaned = (
+            "The transcript appears short. Still generate questions based strictly "
+            "on the available content. Do NOT create generic questions.\n"
+            f"Transcript: {cleaned}"
+        )
+    else:
+        cleaned = f"Transcript: {cleaned}"
 
     prompt = f"""
 You are an expert English comprehension teacher.
 
-Generate EXACTLY 10 multiple-choice questions based ONLY on the transcript below.
+Your job is to generate EXACTLY 10 multiple-choice questions based ONLY on the transcript below.
 
-Rules:
-- Questions must be specific to the transcript.
-- Avoid generic questions.
-- Each question must have 4 options.
-- Provide the correct answer.
-- Return ONLY valid JSON.
+The questions MUST:
+- reflect the events, characters, ideas, and details in the transcript
+- include specific names, places, actions, and facts from the story
+- avoid generic or vague questions
+- require comprehension, not guessing
+
+Each question must include:
+- "question"
+- "options" (4 options)
+- "answer" (correct option)
 
 Transcript:
 {cleaned}
 
-Return JSON in this format:
+Return ONLY valid JSON:
 {{
   "questions": [
     {{
@@ -78,21 +100,22 @@ Return JSON in this format:
 }}
 """
 
-    response = ollama.generate(
-        model="llama3.1",   # or "deepseek-r1" or "llama3.1:70b"
-        prompt=prompt
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=prompt,
+        config=GenerateContentConfig(
+            temperature=0.4,
+            max_output_tokens=2048
+        )
     )
 
-    raw = response.get("response", "")
-
-    # Safe JSON parsing
     try:
-        data = json.loads(raw)
-        return data.get("questions", [])
+        data = json.loads(response.text)
+        return data["questions"]
     except Exception:
         return [
             {
-                "question": "Error parsing AI output.",
+                "question": "Error parsing AI output. Raw response:",
                 "options": ["See transcript"] * 4,
                 "answer": "See transcript",
             }
@@ -156,7 +179,7 @@ def generate_json_for_file(mp3_filename):
 # 7. Streamlit UI
 # ---------------------------------------------------------
 def json_generator_ui():
-    st.header("🎧 AI‑Powered Audio → JSON Generator (Ollama Offline)")
+    st.header("🎧 AI‑Powered Audio → JSON Generator")
 
     mp3_files = [f for f in os.listdir(AUDIO_DIR) if f.endswith(".mp3")]
 
