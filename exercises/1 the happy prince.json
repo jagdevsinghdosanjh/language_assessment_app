@@ -1,0 +1,52 @@
+{
+    "listening": {
+        "transcript": " Listening Test An audio will be played and you will have to answer the questions as you listen. The audio will be played once only. Before you listen to the audio, please read the questions. Now, listen to the audio. The mother was tossing feverishly on his bed and the mother had fallen asleep. She was so tired. In he hopped and laid the great ruby on the table beside the woman's thimble. Then he flew gently round the bed, fanning the boy's forehead with his wings. How cool I feel, said the boy. I must be getting better. And he sank into the bed. He sank into a delicious slumber. Then the swallow flew back to the happy prince and told him what he had done. It is curious, he remarked, but I feel quite warm now, although it is so cold. This is the end of the audio. Now you have some time to check your answers. Thank you for watching.",
+        "questions": [
+            {
+                "question": "Error parsing AI output.",
+                "options": [
+                    "See transcript",
+                    "See transcript",
+                    "See transcript",
+                    "See transcript"
+                ],
+                "answer": "See transcript"
+            }
+        ]
+    },
+    "speaking": {
+        "prompts": [
+            {
+                "task": "Speak about the topic in '1 the happy prince' for 30 seconds."
+            },
+            {
+                "task": "Describe one key point you remember."
+            }
+        ]
+    },
+    "reading": {
+        "passage": "This reading passage is linked to the audio '1 the happy prince'.",
+        "questions": [
+            {
+                "question": "What is the theme of '1 the happy prince'?",
+                "options": [
+                    "Theme A",
+                    "Theme B",
+                    "Theme C",
+                    "Theme D"
+                ],
+                "answer": "Theme A"
+            }
+        ]
+    },
+    "writing": {
+        "tasks": [
+            {
+                "prompt": "Write a short summary of the audio '1 the happy prince'."
+            },
+            {
+                "prompt": "Write your opinion about the topic."
+            }
+        ]
+    }
+}
