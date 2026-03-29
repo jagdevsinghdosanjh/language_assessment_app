@@ -13,4 +13,4 @@ fpdf2
 reportlab
 openai-whisper
 google-generativeai
-
+python-dotenv

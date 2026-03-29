@@ -1,13 +1,12 @@
 import os
 import json
-import subprocess
 import streamlit as st
 import whisper
-import google.generativeai as genai
-from dotenv import load_dotenv
+import subprocess
 
-# Load environment variables
-load_dotenv()
+# Correct Gemini imports
+from google.generativeai.client import configure
+from google.generativeai.generative_models import GenerativeModel
 
 AUDIO_DIR = "assets/audio"
 JSON_DIR = "exercises"
@@ -32,7 +31,7 @@ def preprocess_audio(input_path, output_path="temp.wav"):
         "-i", input_path,
         "-ac", "1",
         "-ar", "16000",
-        output_path,
+        output_path
     ]
     subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return output_path
@@ -46,19 +45,18 @@ def transcribe_audio(audio_path):
     return result["text"]
 
 # ---------------------------------------------------------
-# 4. Generate 10 MCQs using Gemini (new SDK)
+# 4. Generate 10 MCQs using Gemini
 # ---------------------------------------------------------
 def generate_mcqs(transcript):
     api_key = os.getenv("GEMINI_API_KEY")
-    st.write("Gemini Key Loaded:", api_key is not None)
-
     if not api_key:
         raise ValueError("GEMINI_API_KEY not found in environment variables.")
 
-    genai.configure(api_key=api_key)
+    configure(api_key=api_key)
 
     cleaned = transcript.replace("\n", " ").strip()
 
+    # Handle short transcripts
     if len(cleaned.split()) < 20:
         cleaned = (
             "The transcript appears short. Still generate questions based strictly "
@@ -99,9 +97,10 @@ Return ONLY valid JSON:
 }}
 """
 
-    model = genai.GenerativeModel(model_name="gemini-2.0-flash")
-    response = model.generate_content(prompt)
+    model = GenerativeModel(model_name="gemini-2.0-flash")
+    response = model.generate_content(contents=prompt)
 
+    # Parse JSON safely
     try:
         data = json.loads(response.text)
         return data["questions"]
@@ -109,8 +108,8 @@ Return ONLY valid JSON:
         return [
             {
                 "question": "Error parsing AI output. Raw response:",
-                "options": ["See transcript"] * 4,
-                "answer": "See transcript",
+                "options": ["See transcript", "See transcript", "See transcript", "See transcript"],
+                "answer": "See transcript"
             }
         ]
 
@@ -123,12 +122,12 @@ def build_json(audio_filename, transcript, mcqs):
     return {
         "listening": {
             "transcript": transcript,
-            "questions": mcqs,
+            "questions": mcqs
         },
         "speaking": {
             "prompts": [
                 {"task": f"Speak about the topic in '{base}' for 30 seconds."},
-                {"task": "Describe one key point you remember."},
+                {"task": "Describe one key point you remember."}
             ]
         },
         "reading": {
@@ -137,16 +136,16 @@ def build_json(audio_filename, transcript, mcqs):
                 {
                     "question": f"What is the theme of '{base}'?",
                     "options": ["Theme A", "Theme B", "Theme C", "Theme D"],
-                    "answer": "Theme A",
+                    "answer": "Theme A"
                 }
-            ],
+            ]
         },
         "writing": {
             "tasks": [
                 {"prompt": f"Write a short summary of the audio '{base}'."},
-                {"prompt": "Write your opinion about the topic."},
+                {"prompt": "Write your opinion about the topic."}
             ]
-        },
+        }
     }
 
 # ---------------------------------------------------------
@@ -163,8 +162,8 @@ def generate_json_for_file(mp3_filename):
     json_filename = mp3_filename.replace(".mp3", ".json")
     json_path = os.path.join(JSON_DIR, json_filename)
 
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(json_data, f, indent=4, ensure_ascii=False)
+    with open(json_path, "w") as f:
+        json.dump(json_data, f, indent=4)
 
     return json_filename, json_data
 
@@ -189,7 +188,7 @@ def json_generator_ui():
 
         st.download_button(
             label="Download JSON",
-            data=json.dumps(json_data, indent=4, ensure_ascii=False),
+            data=json.dumps(json_data, indent=4),
             file_name=json_filename,
-            mime="application/json",
+            mime="application/json"
         )

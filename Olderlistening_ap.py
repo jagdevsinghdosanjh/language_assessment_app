@@ -4,8 +4,8 @@ from backend.scoring import score_speaking, score_writing  # noqa
 import json
 import os
 
-# Correct import for JSON generator
-from modules.json_generator import json_generator_ui
+# Import JSON generator module
+from modules.questions_generator import questions_generator_ui
 
 
 # ---------------------------------------------------------
@@ -27,11 +27,12 @@ menu = st.sidebar.radio(
 
 
 # ---------------------------------------------------------
-# LISTENING MODULE
+# LISTENING MODULE (UPDATED & FIXED)
 # ---------------------------------------------------------
 if menu == "Listening":
     st.header("Listening Test")
 
+    # Detect all audio files
     audio_dir = "assets/audio"
     audio_files = [f for f in os.listdir(audio_dir) if f.endswith(".mp3")]
 
@@ -39,27 +40,20 @@ if menu == "Listening":
         st.error("No audio files found in assets/audio/")
         st.stop()
 
+    # Let student choose which listening test
     selected_audio = st.selectbox("Choose a Listening Test", audio_files)
 
+    # Derive matching JSON filename
     json_name = selected_audio.replace(".mp3", ".json")
     json_path = os.path.join("exercises", json_name)
 
-    if not os.path.exists(json_path):
-        st.warning(f"No JSON found for {selected_audio}. Please generate it using JSON Generator.")
-        st.stop()
-
-    # Load JSON safely
-    try:
+    # Load JSON if exists
+    if os.path.exists(json_path):
         with open(json_path, "r", encoding="utf-8") as f:
             listening_data = json.load(f)
-    except Exception:
-        st.error("Error reading JSON file. Please regenerate it.")
-        st.stop()
-
-    exercise = listening_data.get("listening", {})
-
-    if "questions" not in exercise or not exercise["questions"]:
-        st.error("No questions found in JSON. Please regenerate using JSON Generator.")
+        exercise = listening_data["listening"]
+    else:
+        st.warning(f"No JSON found for {selected_audio}. Please generate it using JSON Generator.")
         st.stop()
 
     # Play audio
@@ -86,7 +80,7 @@ if menu == "Listening":
 
 
 # ---------------------------------------------------------
-# SPEAKING MODULE
+# SPEAKING MODULE (placeholder)
 # ---------------------------------------------------------
 elif menu == "Speaking":
     st.header("Speaking Test")
@@ -94,7 +88,7 @@ elif menu == "Speaking":
 
 
 # ---------------------------------------------------------
-# READING MODULE
+# READING MODULE (placeholder)
 # ---------------------------------------------------------
 elif menu == "Reading":
     st.header("Reading Test")
@@ -102,7 +96,7 @@ elif menu == "Reading":
 
 
 # ---------------------------------------------------------
-# WRITING MODULE
+# WRITING MODULE (placeholder)
 # ---------------------------------------------------------
 elif menu == "Writing":
     st.header("Writing Test")
@@ -113,4 +107,4 @@ elif menu == "Writing":
 # JSON GENERATOR MODULE
 # ---------------------------------------------------------
 elif menu == "JSON Generator":
-    json_generator_ui()
+    questions_generator_ui()
