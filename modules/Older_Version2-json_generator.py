@@ -3,8 +3,7 @@ import json
 import subprocess
 import streamlit as st
 import whisper
-import google.genai as genai
-from google.genai.types import GenerateContentConfig
+import google.generativeai as genai
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -47,7 +46,7 @@ def transcribe_audio(audio_path):
     return result["text"]
 
 # ---------------------------------------------------------
-# 4. Generate 10 MCQs using NEW Gemini SDK
+# 4. Generate 10 MCQs using Gemini (new SDK)
 # ---------------------------------------------------------
 def generate_mcqs(transcript):
     api_key = os.getenv("GEMINI_API_KEY")
@@ -56,7 +55,7 @@ def generate_mcqs(transcript):
     if not api_key:
         raise ValueError("GEMINI_API_KEY not found in environment variables.")
 
-    client = genai.Client(api_key=api_key)
+    genai.configure(api_key=api_key)
 
     cleaned = transcript.replace("\n", " ").strip()
 
@@ -100,14 +99,8 @@ Return ONLY valid JSON:
 }}
 """
 
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=prompt,
-        config=GenerateContentConfig(
-            temperature=0.4,
-            max_output_tokens=2048
-        )
-    )
+    model = genai.GenerativeModel(model_name="gemini-2.0-flash")
+    response = model.generate_content(prompt)
 
     try:
         data = json.loads(response.text)
