@@ -4,8 +4,8 @@ from backend.scoring import score_speaking, score_writing  # noqa
 import json
 import os
 
-# NEW: Import JSON generator module
-from modules.json_generator import json_generator_ui
+# Import JSON generator module
+from modules.questions_generator import questions_generator_ui
 
 
 # ---------------------------------------------------------
@@ -18,13 +18,6 @@ st.write("Listening • Speaking • Reading • Writing")
 
 
 # ---------------------------------------------------------
-# LOAD LISTENING EXERCISE
-# ---------------------------------------------------------
-with open("exercises/listening.json", "r", encoding="utf-8") as f:
-    listening_data = json.load(f)
-
-
-# ---------------------------------------------------------
 # SIDEBAR MENU
 # ---------------------------------------------------------
 menu = st.sidebar.radio(
@@ -34,15 +27,37 @@ menu = st.sidebar.radio(
 
 
 # ---------------------------------------------------------
-# LISTENING MODULE
+# LISTENING MODULE (UPDATED & FIXED)
 # ---------------------------------------------------------
 if menu == "Listening":
     st.header("Listening Test")
 
-    exercise = listening_data["listening"]
+    # Detect all audio files
+    audio_dir = "assets/audio"
+    audio_files = [f for f in os.listdir(audio_dir) if f.endswith(".mp3")]
 
-    audio_path = os.path.join("assets", "audio", "listening1.mp3")
-    st.audio(audio_path)
+    if not audio_files:
+        st.error("No audio files found in assets/audio/")
+        st.stop()
+
+    # Let student choose which listening test
+    selected_audio = st.selectbox("Choose a Listening Test", audio_files)
+
+    # Derive matching JSON filename
+    json_name = selected_audio.replace(".mp3", ".json")
+    json_path = os.path.join("exercises", json_name)
+
+    # Load JSON if exists
+    if os.path.exists(json_path):
+        with open(json_path, "r", encoding="utf-8") as f:
+            listening_data = json.load(f)
+        exercise = listening_data["listening"]
+    else:
+        st.warning(f"No JSON found for {selected_audio}. Please generate it using JSON Generator.")
+        st.stop()
+
+    # Play audio
+    st.audio(os.path.join(audio_dir, selected_audio))
 
     st.subheader("Answer the following questions:")
 
@@ -89,7 +104,7 @@ elif menu == "Writing":
 
 
 # ---------------------------------------------------------
-# JSON GENERATOR MODULE (NEW)
+# JSON GENERATOR MODULE
 # ---------------------------------------------------------
 elif menu == "JSON Generator":
-    json_generator_ui()
+    questions_generator_ui()
