@@ -1,6 +1,6 @@
 import streamlit as st
-from streamlit.components.v1 import html
-from backend.scoring import score_speaking, score_writing
+from streamlit.components.v1 import html #noqa
+from backend.scoring import score_speaking, score_writing #noqa
 import json
 import os
 

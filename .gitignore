@@ -11,6 +11,7 @@ __pycache__/
 venv/
 env/
 .venv/
+./lsrw_test_venv
 
 # Byte-compiled / optimized / DLL files
 *.so
