@@ -6,7 +6,7 @@ import whisper
 import ollama
 from dotenv import load_dotenv
 
-# Load environment variables (not required for Ollama, but safe to keep)
+# Load environment variables (optional)
 load_dotenv()
 
 AUDIO_DIR = "assets/audio"
@@ -15,7 +15,7 @@ JSON_DIR = "exercises"
 os.makedirs(JSON_DIR, exist_ok=True)
 
 # ---------------------------------------------------------
-# 1. Load Whisper model
+# 1. Load Whisper model (cached)
 # ---------------------------------------------------------
 @st.cache_resource
 def load_whisper():
@@ -24,7 +24,7 @@ def load_whisper():
 whisper_model = load_whisper()
 
 # ---------------------------------------------------------
-# 2. Preprocess audio (FFmpeg)
+# 2. Preprocess audio using FFmpeg
 # ---------------------------------------------------------
 def preprocess_audio(input_path, output_path="temp.wav"):
     cmd = [
@@ -38,7 +38,7 @@ def preprocess_audio(input_path, output_path="temp.wav"):
     return output_path
 
 # ---------------------------------------------------------
-# 3. Transcribe audio
+# 3. Transcribe audio using Whisper
 # ---------------------------------------------------------
 def transcribe_audio(audio_path):
     clean_audio = preprocess_audio(audio_path)
@@ -46,7 +46,7 @@ def transcribe_audio(audio_path):
     return result["text"]
 
 # ---------------------------------------------------------
-# 4. Generate MCQs using Ollama (Llama 3.1 or DeepSeek)
+# 4. Generate MCQs using Ollama (llama3.1)
 # ---------------------------------------------------------
 def generate_mcqs(transcript):
     cleaned = transcript.replace("\n", " ").strip()
@@ -79,13 +79,12 @@ Return JSON in this format:
 """
 
     response = ollama.generate(
-        model="llama3.1",   # or "deepseek-r1" or "llama3.1:70b"
+        model="llama3.1",
         prompt=prompt
     )
 
     raw = response.get("response", "")
 
-    # Safe JSON parsing
     try:
         data = json.loads(raw)
         return data.get("questions", [])
@@ -99,7 +98,7 @@ Return JSON in this format:
         ]
 
 # ---------------------------------------------------------
-# 5. Build full JSON structure
+# 5. Build final JSON structure
 # ---------------------------------------------------------
 def build_json(audio_filename, transcript, mcqs):
     base = audio_filename.replace(".mp3", "")
@@ -134,7 +133,7 @@ def build_json(audio_filename, transcript, mcqs):
     }
 
 # ---------------------------------------------------------
-# 6. Generate JSON for one file
+# 6. Generate JSON for a single audio file
 # ---------------------------------------------------------
 def generate_json_for_file(mp3_filename):
     audio_path = os.path.join(AUDIO_DIR, mp3_filename)
